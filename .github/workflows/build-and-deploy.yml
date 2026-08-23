@@ -42,14 +42,8 @@ jobs:
       - name: Build project
         run: npm run buildmap
 
-      - name: Extract UPLOAD_MODE from .env
-        run: |
-          UPLOAD_MODE=$(grep '^[^#]*UPLOAD_MODE' .env | cut -d '=' -f2)
-          if [ -z "$UPLOAD_MODE" ]; then
-            echo "Error: UPLOAD_MODE is not set in .env."
-            exit 1
-          fi
-          echo "UPLOAD_MODE=$UPLOAD_MODE" >> $GITHUB_ENV
+      - name: Set upload mode
+        run: echo "UPLOAD_MODE=GH_PAGES" >> "$GITHUB_ENV"
 
       - name: Deploy using Github Pages
         if: ${{ env.UPLOAD_MODE == 'GH_PAGES' }}
