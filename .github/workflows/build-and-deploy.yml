@@ -1,0 +1,62 @@
+name: Build and deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # allow manual execution
+
+permissions:
+  contents: write
+  pages: write
+  actions: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./iitk
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20.x"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Convert SVGs to PNGs
+        run: |
+          sudo apt-get update && sudo apt-get install -y librsvg2-bin
+          find . -name "*.svg" -type f | while read -r svg_file; do
+            png_file="${svg_file%.svg}.png"
+            echo "Converting $svg_file to $png_file"
+            rsvg-convert -a -o "$png_file" "$svg_file"
+          done
+
+      - name: Build project
+        run: npm run buildmap
+
+      - name: Extract UPLOAD_MODE from .env
+        run: |
+          UPLOAD_MODE=$(grep '^[^#]*UPLOAD_MODE' .env | cut -d '=' -f2)
+          if [ -z "$UPLOAD_MODE" ]; then
+            echo "Error: UPLOAD_MODE is not set in .env."
+            exit 1
+          fi
+          echo "UPLOAD_MODE=$UPLOAD_MODE" >> $GITHUB_ENV
+
+      - name: Deploy using Github Pages
+        if: ${{ env.UPLOAD_MODE == 'GH_PAGES' }}
+        uses: JamesIves/github-pages-deploy-action@releases/v3
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: gh-pages
+          FOLDER: iitk/dist/
+          BASE_BRANCH: main
