@@ -14,9 +14,6 @@ permissions:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./iitk
 
     steps:
       - name: Checkout Repository
@@ -36,8 +33,10 @@ jobs:
           sudo apt-get update && sudo apt-get install -y librsvg2-bin
           find . -name "*.svg" -type f | while read -r svg_file; do
             png_file="${svg_file%.svg}.png"
-            echo "Converting $svg_file to $png_file"
-            rsvg-convert -a -o "$png_file" "$svg_file"
+            if [ ! -f "$png_file" ]; then
+              echo "Converting $svg_file to $png_file"
+              rsvg-convert -a -o "$png_file" "$svg_file"
+            fi
           done
 
       - name: Build project
